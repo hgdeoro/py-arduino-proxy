@@ -22,7 +22,13 @@ import jinja2
 import logging
 import os
 
+from cherrypy.process.plugins import BackgroundTask
+from cherrypy.process.wspbus import Bus
+
 from arduino_proxy import ArduinoProxy
+import sys
+import subprocess
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -268,6 +274,37 @@ class Root(object):
             return {'ok': False, 'exception': str(e), }
 
 
+def check_ping(proxy):
+    try:
+        # res = 0
+        res = proxy.ping()
+        logging.info("proxy.ping(): %s", res)
+    except:
+        logging.exception("ERROR in check_ping()")
+        os._exit(1)
+
+
+def check_pin_digital(proxy):
+    PIN_ALARMA_PATIO = 7
+    try:
+        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
+        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
+
+        ultimo_valor = ArduinoProxy.HIGH
+        while True:
+            value = proxy.digitalRead(PIN_ALARMA_PATIO)
+            if value != ultimo_valor:
+                print "ALARMA PATIO. Nuevo valor:", value
+                ultimo_valor = value
+            if value == ArduinoProxy.HIGH:
+                subprocess.call('echo "ALARMA PATIO - $(date)" >> /tmp/alarmas.txt', shell=True)
+                os._exit(1)
+            time.sleep(0.5)
+    except:
+        logging.exception("ERROR en check_pin_digital()")
+        os._exit(1)
+
+
 def start_webserver(port, proxy=None, on_error_handler=None):
     directory = os.path.split(__file__)[0]
     static_dir = os.path.join(directory, 'static')
@@ -288,7 +325,13 @@ def start_webserver(port, proxy=None, on_error_handler=None):
         'log.screen': False,
         'server.socket_port': port,
     })
-    
+
+    bgtask = BackgroundTask(5, check_ping, args=[proxy])
+    bgtask.start()
+
+    bgtask = BackgroundTask(5, check_pin_digital, args=[proxy])
+    bgtask.start()
+
     cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/', config=conf)
 
     # cherrypy.log.error_log.setLevel(logging.ERROR)
