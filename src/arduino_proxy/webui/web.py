@@ -298,8 +298,7 @@ def check_pin_digital(proxy):
                 ultimo_valor = value
             if value == ArduinoProxy.HIGH:
                 subprocess.call('echo "ALARMA PATIO - $(date)" >> /tmp/alarmas.txt', shell=True)
-                os._exit(1)
-            time.sleep(0.5)
+            time.sleep(0.1)
     except:
         logging.exception("ERROR en check_pin_digital()")
         os._exit(1)
