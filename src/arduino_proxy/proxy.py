@@ -686,9 +686,9 @@ class ArduinoProxy(object): # pylint: disable=R0904
                 send_char_array_response("PING_OK");
             }
         """)
-    
+
     ## ~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
-    
+
     def validateConnection(self): # pylint: disable=C0103
         """
         Asserts that the current connection is valid, discarding any existing information in the

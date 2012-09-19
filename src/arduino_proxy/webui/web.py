@@ -29,10 +29,11 @@ logger = logging.getLogger(__name__)
 
 class Root(object):
     
-    def __init__(self, jinja2_env):
-        self.proxy = None
+    def __init__(self, jinja2_env, proxy=None, on_error_handler=None):
+        self.proxy = proxy
         self.jinja2_env = jinja2_env
-    
+        self.on_error_handler = on_error_handler
+
     @cherrypy.expose
     def connect_emulator(self):
         logger.info("Creating EMULATOR...")
@@ -80,7 +81,7 @@ class Root(object):
     @cherrypy.expose
     def js_prototyper(self):
         return self.generate_ui(template_name="web-ui-js-prototyper.html")
-    
+
     def generate_ui(self, template_name="web-ui-main.html"):
         """
         Generates the UI pages (main, JS Prototyper, etc.).
@@ -88,22 +89,25 @@ class Root(object):
         """
         if self.proxy is None:
             raise cherrypy.HTTPRedirect("/connect")
-        
+
         try:
             self.proxy.validateConnection()
         except Exception, e:
-            self.proxy = None
-            cherrypy.session['error_message'] = str(e)
-            raise cherrypy.HTTPRedirect("/connect")
-        
+            if self.on_error_handler:
+                self.on_error_handler()
+            else:
+                self.proxy = None
+                cherrypy.session['error_message'] = str(e)
+                raise cherrypy.HTTPRedirect("/connect")
+
         arduino_type = self.proxy.getArduinoTypeStruct()
         avr_cpu_type = self.proxy.getAvrCpuType()
         template = self.jinja2_env.get_template(template_name)
-        
+
         return template.render(arduino_type=arduino_type, avr_cpu_type=avr_cpu_type)
-    
+
     ## ~~~~~~ Here start AJAX methods
-    
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def ping(self):
@@ -264,7 +268,7 @@ class Root(object):
             return {'ok': False, 'exception': str(e), }
 
 
-def start_webserver(port):
+def start_webserver(port, proxy=None, on_error_handler=None):
     directory = os.path.split(__file__)[0]
     static_dir = os.path.join(directory, 'static')
     logger.info("Using '%s' as directory for templates, images, css, etc.", static_dir)
@@ -285,7 +289,7 @@ def start_webserver(port):
         'server.socket_port': port,
     })
     
-    cherrypy.quickstart(Root(jinja2_env), '/', config=conf)
+    cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/', config=conf)
 
     # cherrypy.log.error_log.setLevel(logging.ERROR)
     # cherrypy.log.access_log.setLevel(logging.ERROR)
