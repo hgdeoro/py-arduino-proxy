@@ -9,7 +9,7 @@
 while /bin/true ; do
 	for dev in /dev/ttyACM* ; do
 		echo "Iniciando en dev $dev"
-		python bin/webserver_direct.py --info $dev
+		python /opt/PyArduinoProxy/bin/webserver_direct.py --info $dev
 	done
 	sleep 1
 done

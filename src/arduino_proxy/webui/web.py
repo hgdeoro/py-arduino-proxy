@@ -283,9 +283,32 @@ def check_ping(proxy):
         logging.exception("ERROR in check_ping()")
         os._exit(1)
 
+def check_pin0_digital(proxy):
+    PIN_ALARMA_PATIO = 11
+    try:
+        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
+        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
 
+        ultimo_valor = ArduinoProxy.HIGH
+        while True:
+            value = proxy.digitalRead(PIN_ALARMA_PATIO)
+            if value != ultimo_valor:
+                print "ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor:", value
+                ultimo_valor = value
+		if value == ArduinoProxy.HIGH:
+			subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
+		else:
+			subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
+            time.sleep(0.1)
+    except:
+        logging.exception("ERROR en check_pin0_digital()")
+        os._exit(1)
+
+
+
+#
 def check_pin_digital(proxy):
-    PIN_ALARMA_PATIO = 7
+    PIN_ALARMA_PATIO = 12
     try:
         proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
         proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
@@ -296,14 +319,17 @@ def check_pin_digital(proxy):
             if value != ultimo_valor:
                 print "ALARMA PATIO. Nuevo valor:", value
                 ultimo_valor = value
-            if value == ArduinoProxy.HIGH:
-                subprocess.call('echo "ALARMA PATIO - $(date)" >> /tmp/alarmas.txt', shell=True)
+		if value == ArduinoProxy.HIGH:
+			subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
+		else:
+			subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
             time.sleep(0.1)
     except:
         logging.exception("ERROR en check_pin_digital()")
         os._exit(1)
-
-
+ 
+#
+ # 
 def start_webserver(port, proxy=None, on_error_handler=None):
     directory = os.path.split(__file__)[0]
     static_dir = os.path.join(directory, 'static')
@@ -329,6 +355,9 @@ def start_webserver(port, proxy=None, on_error_handler=None):
     bgtask.start()
 
     bgtask = BackgroundTask(5, check_pin_digital, args=[proxy])
+    bgtask.start()
+    
+    bgtask = BackgroundTask(5, check_pin0_digital, args=[proxy])
     bgtask.start()
 
     cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/', config=conf)
