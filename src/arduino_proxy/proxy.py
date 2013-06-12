@@ -1474,7 +1474,6 @@ class ArduinoProxy(object): # pylint: disable=R0904
             - float, temperature in celcius
         """
         # FIXME: add doc for exceptions
-        self._assert_connected()
         self._validate_digital_pin(pin)
         cmd = "_ds18x20Rd\t%d" % (pin)
 
