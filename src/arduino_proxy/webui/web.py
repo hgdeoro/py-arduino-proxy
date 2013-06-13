@@ -44,13 +44,14 @@ def background_check_ping(proxy):
     el script de inicio lo volverá a iniciar, y de esta manera nos aseguramos
     de reinicair todo el sistema (servidor y Arduino)
     """
-    logging.info("Iniciando background_check_ping()")
+    logger = logging.getLogger("background_check_ping()")
+    logger.info("Iniciando background_check_ping()")
     try:
         # res = 0
         res = proxy.ping()
-        logging.info("proxy.ping(): %s", res)
+        logger.info("proxy.ping(): %s", res)
     except:
-        logging.exception("ERROR in background_check_ping()... "
+        logger.exception("ERROR in background_check_ping()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
         os._exit(1)
 
@@ -60,7 +61,9 @@ def check_pin0_digital(proxy):
     Tarea en BACKGROUND
     """
     PIN_ALARMA_PATIO = 11
-    logging.info("Iniciando check_pin0_digital() - PIN_ALARMA_PATIO: %s",
+
+    logger = logging.getLogger("check_pin0_digital()")
+    logger.info("Iniciando check_pin0_digital() - PIN_ALARMA_PATIO: %s",
         PIN_ALARMA_PATIO)
     try:
         proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
@@ -70,16 +73,17 @@ def check_pin0_digital(proxy):
         while True:
             value = proxy.digitalRead(PIN_ALARMA_PATIO)
             if value != ultimo_valor:
-                print "ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor:", value
-                logging.info("ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor: %s", value)
+                # print "ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor:", value
+                logger.info("ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor: %s", value)
                 ultimo_valor = value
+
         if value == ArduinoProxy.HIGH:
             subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
         else:
             subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
             time.sleep(0.1)
     except:
-        logging.exception("ERROR in check_pin0_digital()... "
+        logger.exception("ERROR in check_pin0_digital()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
         os._exit(1)
 
@@ -90,7 +94,9 @@ def background_check_ds18x20_temperatura_pileta(proxy):
     """
     PIN_TEMPERATURA = 9
     ARCHIVO = '/tmp/temperatura-pileta.txt'
-    logging.info("Iniciando background_check_ds18x20_temperatura_pileta() - "
+
+    logger = logging.getLogger("background_check_ds18x20_temperatura_pileta()")
+    logger.info("Iniciando background_check_ds18x20_temperatura_pileta() - "
         "PIN_TEMPERATURA: %s - ARCHIVO: %s", PIN_TEMPERATURA, ARCHIVO)
     try:
         # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
@@ -99,7 +105,7 @@ def background_check_ds18x20_temperatura_pileta(proxy):
             f.write(value)
             f.write("\n")
     except:
-        logging.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
+        logger.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
             " y reiniciaremos...")
         time.sleep(10)
         # os._exit(1)
@@ -110,7 +116,9 @@ def check_pin_digital(proxy):
     Tarea en BACKGROUND
     """
     PIN_ALARMA_PATIO = 12
-    logging.info("Iniciando check_pin_digital() - PIN_ALARMA_PATIO: %s",
+
+    logger = logging.getLogger("check_pin_digital()")
+    logger.info("Iniciando check_pin_digital() - PIN_ALARMA_PATIO: %s",
         PIN_ALARMA_PATIO)
     try:
         proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
@@ -120,7 +128,8 @@ def check_pin_digital(proxy):
         while True:
             value = proxy.digitalRead(PIN_ALARMA_PATIO)
             if value != ultimo_valor:
-                print "ALARMA PATIO. Nuevo valor:", value
+                # print "ALARMA PATIO. Nuevo valor:", value
+                logger.info("ALARMA PATIO. Nuevo valor: %s", value)
                 ultimo_valor = value
         if value == ArduinoProxy.HIGH:
             subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
@@ -128,7 +137,7 @@ def check_pin_digital(proxy):
             subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
             time.sleep(0.1)
     except:
-        logging.exception("ERROR in check_pin_digital()... "
+        logger.exception("ERROR in check_pin_digital()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
         os._exit(1)
 
