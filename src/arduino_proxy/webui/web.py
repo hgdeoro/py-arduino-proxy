@@ -77,11 +77,11 @@ def check_pin0_digital(proxy):
                 logger.info("ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor: %s", value)
                 ultimo_valor = value
 
-        if value == ArduinoProxy.HIGH:
-            subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
-        else:
-            subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
-            time.sleep(0.1)
+                if value == ArduinoProxy.HIGH:
+                    subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
+                else:
+                    subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
+                time.sleep(0.1)
     except:
         logger.exception("ERROR in check_pin0_digital()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
@@ -131,11 +131,11 @@ def check_pin_digital(proxy):
                 # print "ALARMA PATIO. Nuevo valor:", value
                 logger.info("ALARMA PATIO. Nuevo valor: %s", value)
                 ultimo_valor = value
-        if value == ArduinoProxy.HIGH:
-            subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
-        else:
-            subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
-            time.sleep(0.1)
+                if value == ArduinoProxy.HIGH:
+                    subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
+                else:
+                    subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
+                time.sleep(0.1)
     except:
         logger.exception("ERROR in check_pin_digital()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
