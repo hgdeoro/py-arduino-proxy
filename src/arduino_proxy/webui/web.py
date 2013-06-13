@@ -21,17 +21,128 @@ import cherrypy
 import jinja2
 import logging
 import os
-import sys
 import subprocess
 import time
 
 from cherrypy.process.plugins import BackgroundTask
-from cherrypy.process.wspbus import Bus
 
 from arduino_proxy import ArduinoProxy
 
 logger = logging.getLogger(__name__)
 
+
+#===============================================================================
+#  Tareas en background
+#===============================================================================
+
+def background_check_ping(proxy):
+    """
+    Tarea en BACKGROUND.
+    
+    Sirve para que, si el ping no responde, cerremos el servidor, y así
+    el script de inicio lo volverá a iniciar, y de esta manera nos aseguramos
+    de reinicair todo el sistema (servidor y Arduino)
+    """
+    logging.info("Iniciando background_check_ping()")
+    try:
+        # res = 0
+        res = proxy.ping()
+        logging.info("proxy.ping(): %s", res)
+    except:
+        logging.exception("ERROR in background_check_ping()... "
+            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
+        os._exit(1)
+
+
+def check_pin0_digital(proxy):
+    """
+    Tarea en BACKGROUND
+    """
+    PIN_ALARMA_PATIO = 11
+    logging.info("Iniciando check_pin0_digital() - PIN_ALARMA_PATIO: %s",
+        PIN_ALARMA_PATIO)
+    try:
+        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
+        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
+
+        ultimo_valor = ArduinoProxy.HIGH
+        while True:
+            value = proxy.digitalRead(PIN_ALARMA_PATIO)
+            if value != ultimo_valor:
+                print "ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor:", value
+                logging.info("ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor: %s", value)
+                ultimo_valor = value
+        if value == ArduinoProxy.HIGH:
+            subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
+        else:
+            subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
+            time.sleep(0.1)
+    except:
+        logging.exception("ERROR in check_pin0_digital()... "
+            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
+        os._exit(1)
+
+
+def background_check_ds18x20_temperatura_pileta(proxy):
+    """
+    Tarea en BACKGROUND
+    """
+    PIN_TEMPERATURA = 9
+    ARCHIVO = '/tmp/temperatura-pileta.txt'
+    logging.info("Iniciando background_check_ds18x20_temperatura_pileta() - "
+        "PIN_TEMPERATURA: %s - ARCHIVO: %s", PIN_TEMPERATURA, ARCHIVO)
+    try:
+        # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
+        value = proxy.ds18x20_read(PIN_TEMPERATURA)
+        with open(ARCHIVO, 'a') as f:
+            f.write(value)
+            f.write("\n")
+    except:
+        logging.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
+            " y reiniciaremos...")
+        time.sleep(10)
+        # os._exit(1)
+
+
+def check_pin_digital(proxy):
+    """
+    Tarea en BACKGROUND
+    """
+    PIN_ALARMA_PATIO = 12
+    logging.info("Iniciando check_pin_digital() - PIN_ALARMA_PATIO: %s",
+        PIN_ALARMA_PATIO)
+    try:
+        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
+        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
+
+        ultimo_valor = ArduinoProxy.HIGH
+        while True:
+            value = proxy.digitalRead(PIN_ALARMA_PATIO)
+            if value != ultimo_valor:
+                print "ALARMA PATIO. Nuevo valor:", value
+                ultimo_valor = value
+        if value == ArduinoProxy.HIGH:
+            subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
+        else:
+            subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
+            time.sleep(0.1)
+    except:
+        logging.exception("ERROR in check_pin_digital()... "
+            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
+        os._exit(1)
+
+
+TAREAS_EN_BACKGROUND = [
+    (5, background_check_ping),
+    (5, check_pin_digital),
+    (5, check_pin0_digital),
+    (10, background_check_ds18x20_temperatura_pileta),
+]
+
+
+#===============================================================================
+#  Servidor y demas clases
+#===============================================================================
 
 class Root(object):
     
@@ -274,103 +385,6 @@ class Root(object):
             return {'ok': False, 'exception': str(e), }
 
 
-def background_check_ping(proxy):
-    """
-    Tarea en BACKGROUND.
-    
-    Sirve para que, si el ping no responde, cerremos el servidor, y así
-    el script de inicio lo volverá a iniciar, y de esta manera nos aseguramos
-    de reinicair todo el sistema (servidor y Arduino)
-    """
-    logging.info("Iniciando background_check_ping()")
-    try:
-        # res = 0
-        res = proxy.ping()
-        logging.info("proxy.ping(): %s", res)
-    except:
-        logging.exception("ERROR in background_check_ping()... "
-            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
-        os._exit(1)
-
-
-def check_pin0_digital(proxy):
-    """
-    Tarea en BACKGROUND
-    """
-    PIN_ALARMA_PATIO = 11
-    logging.info("Iniciando check_pin0_digital() - PIN_ALARMA_PATIO: %s",
-        PIN_ALARMA_PATIO)
-    try:
-        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
-        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
-
-        ultimo_valor = ArduinoProxy.HIGH
-        while True:
-            value = proxy.digitalRead(PIN_ALARMA_PATIO)
-            if value != ultimo_valor:
-                print "ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor:", value
-                logging.info("ALARMA  1 (Conectada) / 0 (Desconectada). Nuevo valor: %s", value)
-                ultimo_valor = value
-        if value == ArduinoProxy.HIGH:
-            subprocess.call('/home/scripts/alarma/alarma_desactivada.txt', shell=True)
-        else:
-            subprocess.call('/home/scripts/alarma/alarma_activada.txt', shell=True)
-            time.sleep(0.1)
-    except:
-        logging.exception("ERROR in check_pin0_digital()... "
-            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
-        os._exit(1)
-
-
-def background_check_ds18x20_temperatura_pileta(proxy):
-    """
-    Tarea en BACKGROUND
-    """
-    PIN_TEMPERATURA = 9
-    ARCHIVO = '/tmp/temperatura-pileta.txt'
-    logging.info("Iniciando background_check_ds18x20_temperatura_pileta() - PIN_TEMPERATURA: %s - ARCHIVO: %s",
-        PIN_TEMPERATURA, ARCHIVO)
-    try:
-        # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
-        value = proxy.ds18x20_read(PIN_TEMPERATURA)
-        with open(ARCHIVO, 'a') as f:
-            f.write(value)
-            f.write("\n")
-    except:
-        logging.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
-            " y reiniciaremos...")
-        time.sleep(10)
-        # os._exit(1)
-
-
-def check_pin_digital(proxy):
-    """
-    Tarea en BACKGROUND
-    """
-    PIN_ALARMA_PATIO = 12
-    logging.info("Iniciando check_pin_digital() - PIN_ALARMA_PATIO: %s",
-        PIN_ALARMA_PATIO)
-    try:
-        proxy.pinMode(PIN_ALARMA_PATIO, ArduinoProxy.INPUT)
-        proxy.digitalWrite(PIN_ALARMA_PATIO, ArduinoProxy.HIGH)
-
-        ultimo_valor = ArduinoProxy.HIGH
-        while True:
-            value = proxy.digitalRead(PIN_ALARMA_PATIO)
-            if value != ultimo_valor:
-                print "ALARMA PATIO. Nuevo valor:", value
-                ultimo_valor = value
-        if value == ArduinoProxy.HIGH:
-            subprocess.call('/home/scripts/alarma/alarma.txt', shell=True)
-        else:
-            subprocess.call('/home/scripts/alarma/fin_alarma.txt', shell=True)
-            time.sleep(0.1)
-    except:
-        logging.exception("ERROR in check_pin_digital()... "
-            "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
-        os._exit(1)
-
- 
 def start_webserver(port, proxy=None, on_error_handler=None):
     directory = os.path.split(__file__)[0]
     static_dir = os.path.join(directory, 'static')
@@ -392,19 +406,24 @@ def start_webserver(port, proxy=None, on_error_handler=None):
         'server.socket_port': port,
     })
 
-    bgtask = BackgroundTask(5, background_check_ping, args=[proxy])
-    bgtask.start()
+    #    bgtask = BackgroundTask(5, background_check_ping, args=[proxy])
+    #    bgtask.start()
+    #
+    #    bgtask = BackgroundTask(5, check_pin_digital, args=[proxy])
+    #    bgtask.start()
+    #
+    #    bgtask = BackgroundTask(5, check_pin0_digital, args=[proxy])
+    #    bgtask.start()
+    #
+    #    bgtask = BackgroundTask(10, background_check_ds18x20_temperatura_pileta, args=[proxy])
+    #    bgtask.start()
 
-    bgtask = BackgroundTask(5, check_pin_digital, args=[proxy])
-    bgtask.start()
-    
-    bgtask = BackgroundTask(5, check_pin0_digital, args=[proxy])
-    bgtask.start()
+    for intervalo, funcion_background in TAREAS_EN_BACKGROUND:
+        bgtask = BackgroundTask(intervalo, funcion_background, args=[proxy])
+        bgtask.start()
 
-    bgtask = BackgroundTask(10, background_check_ds18x20_temperatura_pileta, args=[proxy])
-    bgtask.start()
-
-    cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/', config=conf)
+    cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/',
+        config=conf)
 
     # cherrypy.log.error_log.setLevel(logging.ERROR)
     # cherrypy.log.access_log.setLevel(logging.ERROR)
