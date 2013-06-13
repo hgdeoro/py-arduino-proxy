@@ -1,3 +1,4 @@
+# -*- coding: utf-8
 ##-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ##    Py-Arduino-Proxy - Access your Arduino from Python
 ##    Copyright (C) 2011 - Horacio Guillermo de Oro <hgdeoro@gmail.com>

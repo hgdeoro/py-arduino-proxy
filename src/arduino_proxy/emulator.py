@@ -79,7 +79,7 @@ class ArduinoEmulator(threading.Thread):
             except:
                 return default_value
         
-        logger.info("run_cmd() - cmd: %s", pprint.pformat(cmd))
+        logger.debug("run_cmd() - cmd: %s", pprint.pformat(cmd))
         splitted = cmd.split()
         
         if not self._validate_parameters(splitted):
