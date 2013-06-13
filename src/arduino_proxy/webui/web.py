@@ -274,7 +274,7 @@ class Root(object):
             return {'ok': False, 'exception': str(e), }
 
 
-def check_ping(proxy):
+def background_check_ping(proxy):
     """
     Tarea en BACKGROUND.
     
@@ -282,13 +282,13 @@ def check_ping(proxy):
     el script de inicio lo volverá a iniciar, y de esta manera nos aseguramos
     de reinicair todo el sistema (servidor y Arduino)
     """
-    logging.info("Iniciando check_ping()")
+    logging.info("Iniciando background_check_ping()")
     try:
         # res = 0
         res = proxy.ping()
         logging.info("proxy.ping(): %s", res)
     except:
-        logging.exception("ERROR in check_ping()... "
+        logging.exception("ERROR in background_check_ping()... "
             "Haremos 'os._exit(1)' para forzar el reinicio del servidor y de Arduino")
         os._exit(1)
 
@@ -322,13 +322,13 @@ def check_pin0_digital(proxy):
         os._exit(1)
 
 
-def check_ds18x20_temperatura_pileta(proxy):
+def background_check_ds18x20_temperatura_pileta(proxy):
     """
     Tarea en BACKGROUND
     """
     PIN_TEMPERATURA = 9
     ARCHIVO = '/tmp/temperatura-pileta.txt'
-    logging.info("Iniciando check_ds18x20_temperatura_pileta() - PIN_TEMPERATURA: %s - ARCHIVO: %s",
+    logging.info("Iniciando background_check_ds18x20_temperatura_pileta() - PIN_TEMPERATURA: %s - ARCHIVO: %s",
         PIN_TEMPERATURA, ARCHIVO)
     try:
         # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
@@ -392,7 +392,7 @@ def start_webserver(port, proxy=None, on_error_handler=None):
         'server.socket_port': port,
     })
 
-    bgtask = BackgroundTask(5, check_ping, args=[proxy])
+    bgtask = BackgroundTask(5, background_check_ping, args=[proxy])
     bgtask.start()
 
     bgtask = BackgroundTask(5, check_pin_digital, args=[proxy])
@@ -401,7 +401,7 @@ def start_webserver(port, proxy=None, on_error_handler=None):
     bgtask = BackgroundTask(5, check_pin0_digital, args=[proxy])
     bgtask.start()
 
-    bgtask = BackgroundTask(10, check_ds18x20_temperatura_pileta, args=[proxy])
+    bgtask = BackgroundTask(10, background_check_ds18x20_temperatura_pileta, args=[proxy])
     bgtask.start()
 
     cherrypy.quickstart(Root(jinja2_env, proxy=proxy, on_error_handler=on_error_handler), '/', config=conf)
