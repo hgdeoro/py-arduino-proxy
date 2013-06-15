@@ -102,7 +102,7 @@ def background_check_ds18x20_temperatura_pileta(proxy):
         # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
         value = proxy.ds18x20_read(PIN_TEMPERATURA)
         with open(ARCHIVO, 'a') as f:
-            f.write(value)
+            f.write(str(value))
             f.write("\n")
     except:
         logger.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
