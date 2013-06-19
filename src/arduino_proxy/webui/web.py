@@ -104,9 +104,9 @@ def background_check_ds18x20_temperatura_pileta(proxy):
         value = proxy.ds18x20_read(PIN_TEMPERATURA)
         hora = datetime.datetime.now()
         with open(ARCHIVO, 'a') as f:
-            f.write(str(value))
+            f.write("{:0.1f}".format(value))
             f.write("  -->> ")
-            f.write(str(hora))
+            f.write(hora.strftime("%H:%M:%S %Y-%m-%d"))
             f.write("\n")
     except:
         logger.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
