@@ -24,6 +24,7 @@ import logging
 import os
 import subprocess
 import time
+import datetime
 
 from cherrypy.process.plugins import BackgroundTask
 
@@ -101,8 +102,11 @@ def background_check_ds18x20_temperatura_pileta(proxy):
     try:
         # proxy.pinMode(PIN_TEMPERATURA, ArduinoProxy.INPUT)
         value = proxy.ds18x20_read(PIN_TEMPERATURA)
+        hora = datetime.datetime.now()
         with open(ARCHIVO, 'a') as f:
             f.write(str(value))
+            f.write("  -->> ")
+            f.write(str(hora))
             f.write("\n")
     except:
         logger.exception("ERROR en ds18x20_read()... En vez de salir, solo esperaremos un momento"
@@ -146,7 +150,7 @@ TAREAS_EN_BACKGROUND = [
     (5, background_check_ping),
     (5, check_pin_digital),
     (5, check_pin0_digital),
-    (10, background_check_ds18x20_temperatura_pileta),
+    (599, background_check_ds18x20_temperatura_pileta),
 ]
 
 
