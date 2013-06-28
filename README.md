@@ -1,6 +1,6 @@
 
-PyArduinoProxy now is PyArduino
-===============================
+PyArduinoProxy now is py-arduino
+================================
 
 I've renamed the project to **py-arduino**, please check it out at:
 
